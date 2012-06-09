@@ -134,7 +134,7 @@ class RuleSetGenerator
      */
     private function addRule($type, Rule $newRule = null)
     {
-        if ($this->rules->containsEqual($newRule)) {
+        if (null == $newRule || $this->rules->containsEqual($newRule)) {
             return;
         }
 
@@ -157,7 +157,10 @@ class RuleSetGenerator
             foreach ($package->getRequires() as $link) {
                 $possibleRequires = $this->pool->whatProvides($link->getTarget(), $link->getConstraint());
 
-                $this->addRule(RuleSet::TYPE_PACKAGE, $rule = $this->createRequireRule($package, $possibleRequires, Rule::RULE_PACKAGE_REQUIRES, (string) $link));
+                $rule = $this->createRequireRule($package, $possibleRequires, Rule::RULE_PACKAGE_REQUIRES, (string) $link);
+                if (null != $rule) {
+                    $this->addRule(RuleSet::TYPE_PACKAGE, $rule);
+                }
 
                 foreach ($possibleRequires as $require) {
                     $workQueue->enqueue($require);
