@@ -37,8 +37,8 @@ class Config
     public function __construct()
     {
         // load defaults
-        $this->config = static::$defaultConfig;
-        $this->repositories = static::$defaultRepositories;
+        $defaultConfig = new \Composer\Json\JsonFile(__DIR__.'/config.json');
+        $this->config = $defaultConfig->read();
     }
 
     /**
@@ -101,6 +101,7 @@ class Config
         switch ($key) {
             case 'vendor-dir':
             case 'bin-dir':
+            case 'component-dir':
             case 'process-timeout':
                 // convert foo-bar to COMPOSER_FOO_BAR and check if it exists since it overrides the local config
                 $env = 'COMPOSER_' . strtoupper(strtr($key, '-', '_'));
@@ -110,9 +111,20 @@ class Config
             case 'home':
                 return rtrim($this->process($this->config[$key]), '/\\');
 
+            case 'downloaders':
+            case 'installers':
+            case 'repository-factories':
+            case 'default-repositories':
+                return $this->config[$key];
+
             default:
                 return $this->process($this->config[$key]);
         }
+    }
+
+    public function getArray()
+    {
+        return $this->config;
     }
 
     /**

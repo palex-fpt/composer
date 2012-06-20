@@ -26,7 +26,9 @@ class RepositoryManager
 {
     private $localRepository;
     private $localDevRepository;
+    /** @var RepositoryInterface[] */
     private $repositories = array();
+    /** @var RepositoryFactoryInterface[] */
     private $repositoryClasses = array();
     private $io;
     private $config;
@@ -88,8 +90,8 @@ class RepositoryManager
      *
      * @param  string                   $type   repository type
      * @param  string                   $config repository configuration
+     * @throws \InvalidArgumentException if repository for provided type is not registeterd
      * @return RepositoryInterface
-     * @throws InvalidArgumentException if repository for provided type is not registeterd
      */
     public function createRepository($type, $config)
     {
@@ -97,9 +99,9 @@ class RepositoryManager
             throw new \InvalidArgumentException('Repository type is not registered: '.$type);
         }
 
-        $class = $this->repositoryClasses[$type];
+        $factory = $this->repositoryClasses[$type];
 
-        return new $class($config, $this->io, $this->config);
+        return $factory->createRepository($config);
     }
 
     /**
@@ -108,9 +110,9 @@ class RepositoryManager
      * @param string $type  installation type
      * @param string $class class name of the repo implementation
      */
-    public function setRepositoryClass($type, $class)
+    public function setRepositoryFactory($type, RepositoryFactoryInterface $factory)
     {
-        $this->repositoryClasses[$type] = $class;
+        $this->repositoryClasses[$type] = $factory;
     }
 
     /**

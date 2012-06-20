@@ -1,0 +1,56 @@
+{
+    "process-timeout": 300,
+    "vendor-dir": "vendor",
+    "bin-dir": "{$vendor-dir}/bin",
+    "component-dir": "{$home}/components",
+    "notify-on-install": true,
+
+    "_comment": "Initialization goes in two runs. On first it try to load all available classes.",
+    "_comment2": "Then it will initialize all 'component-repositories' and try to load packages from 'components' section",
+    "_comment3": "On second run it reinitilaize 'downloaders', 'installers' and 'repository-factories'",
+
+    "components": {
+        "composer/composer-pear": "1.*"
+    },
+    "component-repositories": {
+        "package": {
+            "name": "composer/composer-pear",
+            "version": "1.0",
+            "dist": {
+                "url": "https://github.com/palex-fpt/composer-pear/zipball/master",
+                "type": "zip"
+            }
+        }
+    },
+    "default-repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "http://packagist.org"
+        }
+    },
+    "downloaders": {
+        "git":  "Composer\\Downloader\\GitDownloader",
+        "svn":  "Composer\\Downloader\\SvnDownloader",
+        "hg":   "Composer\\Downloader\\HgDownloader",
+        "pear": "Composer\\Downloader\\PearDownloader",
+        "zip":  "Composer\\Downloader\\ZipDownloader",
+        "tar":  "Composer\\Downloader\\TarDownloader",
+        "phar": "Composer\\Downloader\\PharDownloader",
+        "file": "Composer\\Downloader\\FileDownloader"
+    },
+    "installers": {
+        "library":              "Composer\\Installer\\LibraryInstaller",
+        "composer-installer":   "Composer\\Installer\\InstallerInstaller",
+        "metapackage":          "Composer\\Installer\\MetapackageInstaller",
+        "*":                    "Composer\\Installer\\LibraryInstaller"
+    },
+    "repository-factories": {
+        "composer":     "Composer\\Repository\\ComposerRepositoryFactory",
+        "vcs":          "Composer\\Repository\\VcsRepositoryFactory",
+        "package":      "Composer\\Repository\\PackageRepositoryFactory",
+        "pear":         "Composer\\Repository\\PearRepositoryFactory",
+        "git":          "Composer\\Repository\\VcsRepositoryFactory",
+        "svn":          "Composer\\Repository\\VcsRepositoryFactory",
+        "hg":           "Composer\\Repository\\VcsRepositoryFactory"
+    }
+}

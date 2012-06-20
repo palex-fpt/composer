@@ -130,7 +130,7 @@ class Composer
     }
 
     /**
-     * @return Downloader\DownloadManager
+     * @return DownloadManager
      */
     public function getDownloadManager()
     {
@@ -151,5 +151,10 @@ class Composer
     public function getInstallationManager()
     {
         return $this->installationManager;
+    }
+
+    public function registerRepository($type, $className)
+    {
+        //$this->repositoryManager->add
     }
 }

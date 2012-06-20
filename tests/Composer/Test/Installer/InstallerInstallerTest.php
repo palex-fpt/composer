@@ -37,6 +37,22 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
         $this->repository = $this->getMock('Composer\Repository\InstalledRepositoryInterface');
 
         $this->io = $this->getMock('Composer\IO\IOInterface');
+
+        $this->config = $this->getMock('Composer\Config');
+
+        $this->config->expects($this->any())
+            ->method('get')
+            ->will($this->returnCallback(function($key) {
+            if ('vendor-dir' == $key) {
+                return __DIR__.'/Fixtures/';
+            } elseif ('bin-dir' == $key) {
+                return __DIR__.'/Fixtures/bin';
+            }
+        }));
+
+        $this->rm = new \Composer\Repository\RepositoryManager($this->io, $this->config);
+        $this->rm->setLocalRepository($this->repository);
+        $this->rm->setLocalDevRepository(new \Composer\Repository\ArrayRepository());
     }
 
     public function testInstallNewInstaller()
@@ -45,7 +61,8 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
             ->expects($this->once())
             ->method('getPackages')
             ->will($this->returnValue(array()));
-        $installer = new InstallerInstallerMock(__DIR__.'/Fixtures/', __DIR__.'/Fixtures/bin', $this->dm, $this->io, $this->im, array($this->repository));
+
+        $installer = new InstallerInstallerMock($this->config, $this->dm, $this->im, $this->rm, $this->io);
 
         $test = $this;
         $this->im
@@ -65,14 +82,7 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
             ->method('getPackages')
             ->will($this->returnValue(array()));
 
-        $installer = new InstallerInstallerMock(
-            __DIR__.'/Fixtures/',
-            __DIR__.'/Fixtures/bin',
-            $this->dm,
-            $this->io,
-            $this->im,
-            array($this->repository)
-        );
+        $installer = new InstallerInstallerMock($this->config, $this->dm, $this->im, $this->rm, $this->io);
 
         $test = $this;
 
@@ -105,7 +115,7 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
             ->expects($this->exactly(2))
             ->method('hasPackage')
             ->will($this->onConsecutiveCalls(true, false));
-        $installer = new InstallerInstallerMock(__DIR__.'/Fixtures/', __DIR__.'/Fixtures/bin', $this->dm, $this->io, $this->im, array($this->repository));
+        $installer = new InstallerInstallerMock($this->config, $this->dm, $this->im, $this->rm, $this->io);
 
         $test = $this;
         $this->im
@@ -128,7 +138,8 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
             ->expects($this->exactly(2))
             ->method('hasPackage')
             ->will($this->onConsecutiveCalls(true, false));
-        $installer = new InstallerInstallerMock(__DIR__.'/Fixtures/', __DIR__.'/Fixtures/bin', $this->dm, $this->io, $this->im, array($this->repository));
+
+        $installer = new InstallerInstallerMock($this->config, $this->dm, $this->im, $this->rm, $this->io);
 
         $test = $this;
         $this->im

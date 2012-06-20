@@ -111,6 +111,8 @@ class Factory
      */
     public function createComposer(IOInterface $io, $localConfig = null)
     {
+        $rfs = new RemoteFilesystem($io);
+
         // load Composer configuration
         if (null === $localConfig) {
             $localConfig = $this->getComposerFile();
@@ -118,7 +120,7 @@ class Factory
 
         if (is_string($localConfig)) {
             $composerFile = $localConfig;
-            $file = new JsonFile($localConfig, new RemoteFilesystem($io));
+            $file = new JsonFile($localConfig, $rfs);
 
             if (!$file->exists()) {
                 if ($localConfig === 'composer.json') {
@@ -138,14 +140,19 @@ class Factory
         $config = static::createConfig();
         $config->merge($localConfig);
 
-        $vendorDir = $config->get('vendor-dir');
-        $binDir = $config->get('bin-dir');
+        // special repository merging
+        foreach ($config->get('default-repositories') as $repository) {
+            if (false !== $repository) {
+                $localConfig['repositories'][] = $repository;
+            }
+        }
 
         // setup process timeout
         ProcessExecutor::setTimeout((int) $config->get('process-timeout'));
 
-        // initialize repository manager
-        $rm = $this->createRepositoryManager($io, $config);
+        $dm = new \Composer\Downloader\DownloadManager();
+        $im = $this->createInstallationManager();
+        $rm = new RepositoryManager($io, $config);
 
         // load local repository
         $this->addLocalRepository($rm, $vendorDir);
@@ -166,93 +173,64 @@ class Factory
         // initialize composer
         $composer = new Composer();
         $composer->setConfig($config);
-        $composer->setPackage($package);
         $composer->setRepositoryManager($rm);
         $composer->setDownloadManager($dm);
         $composer->setInstallationManager($im);
+
+        // load local repository
+        $this->addLocalRepository($rm, $config);
+
+        $componentLoader = new ComponentLoader($composer, $io);
+
+        // list of objects available to components constructors
+        $registry = array(
+            'Composer\IO\IOInterface' => $io,
+            'Composer\Util\RemoteFilesystem' => $rfs,
+            'Composer\Util\Filesystem' => new Util\Filesystem(),
+            'Composer\Config' => $config,
+            'Composer\Installer\InstallationManager' => $im,
+            'Composer\Repository\RepositoryManager' => $rm,
+            'Composer\Downloader\DownloadManager' => $dm,
+        );
+
+        // step one: initialize repositories, installers and downloaders with local available classes
+        $unavailable = $componentLoader->initializeWithAvailableClasses($config, $registry);
+
+        // step two: update components
+        if (0 != count($unavailable['repository-factories']) + count($unavailable['installers']) + count($unavailable['downloaders'])) {
+            throw new \InvalidArgumentException('Some Composer components are unavailable.');
+            // todo: Load components and reinitialize repositories, installers and downloadres with available classes
+        }
 
         // init locker if possible
         if (isset($composerFile)) {
             $lockFile = "json" === pathinfo($composerFile, PATHINFO_EXTENSION)
                 ? substr($composerFile, 0, -4).'lock'
                 : $composerFile . '.lock';
-            $locker = new Package\Locker(new JsonFile($lockFile, new RemoteFilesystem($io)), $rm, $im, md5_file($composerFile));
+            $locker = new Package\Locker(new JsonFile($lockFile, $rfs), $rm, md5_file($composerFile));
             $composer->setLocker($locker);
         }
+
+         // load package
+        $loader  = new Package\Loader\RootPackageLoader($rm);
+        $package = $loader->load($localConfig);
+
+        // purge packages if they have been deleted on the filesystem
+        $this->purgePackages($rm, $im);
+
+        $composer->setPackage($package);
 
         return $composer;
     }
 
-    /**
-     * @param  IOInterface                  $io
-     * @param  Config                       $config
-     * @return Repository\RepositoryManager
-     */
-    protected function createRepositoryManager(IOInterface $io, Config $config)
+    protected function addLocalRepository(RepositoryManager $rm, Config $config)
     {
-        $rm = new RepositoryManager($io, $config);
-        $rm->setRepositoryClass('composer', 'Composer\Repository\ComposerRepository');
-        $rm->setRepositoryClass('vcs', 'Composer\Repository\VcsRepository');
-        $rm->setRepositoryClass('package', 'Composer\Repository\PackageRepository');
-        $rm->setRepositoryClass('pear', 'Composer\Repository\PearRepository');
-        $rm->setRepositoryClass('git', 'Composer\Repository\VcsRepository');
-        $rm->setRepositoryClass('svn', 'Composer\Repository\VcsRepository');
-        $rm->setRepositoryClass('hg', 'Composer\Repository\VcsRepository');
+        $vendorDir = $config->get('vendor-dir');
 
-        return $rm;
-    }
-
-    /**
-     * @param Repository\RepositoryManager $rm
-     * @param string                       $vendorDir
-     */
-    protected function addLocalRepository(RepositoryManager $rm, $vendorDir)
-    {
         $rm->setLocalRepository(new Repository\InstalledFilesystemRepository(new JsonFile($vendorDir.'/composer/installed.json')));
         $rm->setLocalDevRepository(new Repository\InstalledFilesystemRepository(new JsonFile($vendorDir.'/composer/installed_dev.json')));
     }
 
-    /**
-     * @param  IO\IOInterface             $io
-     * @return Downloader\DownloadManager
-     */
-    public function createDownloadManager(IOInterface $io)
-    {
-        $dm = new Downloader\DownloadManager();
-        $dm->setDownloader('git', new Downloader\GitDownloader($io));
-        $dm->setDownloader('svn', new Downloader\SvnDownloader($io));
-        $dm->setDownloader('hg', new Downloader\HgDownloader($io));
-        $dm->setDownloader('zip', new Downloader\ZipDownloader($io));
-        $dm->setDownloader('tar', new Downloader\TarDownloader($io));
-        $dm->setDownloader('phar', new Downloader\PharDownloader($io));
-        $dm->setDownloader('file', new Downloader\FileDownloader($io));
-
-        return $dm;
-    }
-
-    /**
-     * @param  Repository\RepositoryManager  $rm
-     * @param  Downloader\DownloadManager    $dm
-     * @param  string                        $vendorDir
-     * @param  string                        $binDir
-     * @param  IO\IOInterface                $io
-     * @return Installer\InstallationManager
-     */
-    protected function createInstallationManager(Repository\RepositoryManager $rm, Downloader\DownloadManager $dm, $vendorDir, $binDir, IOInterface $io)
-    {
-        $im = new Installer\InstallationManager($vendorDir);
-        $im->addInstaller(new Installer\LibraryInstaller($vendorDir, $binDir, $dm, $io, null));
-        $im->addInstaller(new Installer\PearInstaller($vendorDir, $binDir, $dm, $io, 'pear-library'));
-        $im->addInstaller(new Installer\InstallerInstaller($vendorDir, $binDir, $dm, $io, $im, $rm->getLocalRepositories()));
-        $im->addInstaller(new Installer\MetapackageInstaller($io));
-
-        return $im;
-    }
-
-    /**
-     * @param Repository\RepositoryManager  $rm
-     * @param Installer\InstallationManager $im
-     */
     protected function purgePackages(Repository\RepositoryManager $rm, Installer\InstallationManager $im)
     {
         foreach ($rm->getLocalRepositories() as $repo) {
@@ -263,6 +241,11 @@ class Factory
                 }
             }
         }
+    }
+
+    protected function createInstallationManager()
+    {
+        return new \Composer\Installer\InstallationManager();
     }
 
     /**
