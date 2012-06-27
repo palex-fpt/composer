@@ -1,56 +1,88 @@
 {
-    "process-timeout": 300,
-    "vendor-dir": "vendor",
-    "bin-dir": "{$vendor-dir}/bin",
-    "component-dir": "{$home}/components",
-    "notify-on-install": true,
+    "parameters": {
+        "process-timeout": 300,
+        "vendor-dir": "vendor",
+        "bin-dir": "{$vendor-dir}/bin",
+        "component-dir": "{$home}/components",
+        "notify-on-install": true,
 
-    "_comment": "Initialization goes in two runs. On first it try to load all available classes.",
-    "_comment2": "Then it will initialize all 'component-repositories' and try to load packages from 'components' section",
-    "_comment3": "On second run it reinitilaize 'downloaders', 'installers' and 'repository-factories'",
-
-    "components": {
-        "composer/composer-pear": "1.*"
-    },
-    "component-repositories": {
-        "package": {
-            "name": "composer/composer-pear",
-            "version": "1.0",
-            "dist": {
-                "url": "https://github.com/palex-fpt/composer-pear/zipball/master",
-                "type": "zip"
+        "default-repositories": {
+            "packagist": {
+                "type": "composer",
+                "url": "http://packagist.org"
             }
         }
     },
-    "default-repositories": {
-        "packagist": {
-            "type": "composer",
-            "url": "http://packagist.org"
+    "io": {
+        "default-for": "IOInterface",
+        "value": null
+    },
+    "gitDownloader": { "class": "Composer\\Downloader\\GitDownloader" },
+    "svnDownloader": { "class": "Composer\\Downloader\\SvnDownloader" },
+    "hgDownloader": { "class": "Composer\\Downloader\\HgDownloader" },
+    "zipDownloader": { "class": "Composer\\Downloader\\ZipDownloader" },
+    "tarDownloader": { "class": "Composer\\Downloader\\TarDownloader" },
+    "pharDownloader": { "class": "Composer\\Downloader\\PharDownloader" },
+    "fileDownloader": { "class": "Composer\\Downloader\\FileDownloader" },
+
+    "downloadManager": {
+        "default-for": "Composer\\Downloader\\DownloadManager",
+        "class": "Composer\\Downloader\\DownloadManager",
+        "args": {
+            "preferSource": {"param": "prefer-source"},
+            "downloaders": [
+                { "git" :       {"ref": "gitDownloader"}},
+                { "svn" :       {"ref": "svnDownloader"}},
+                { "hg" :        {"ref": "hgDownloader"}},
+                { "zip" :       {"ref": "zipDownloader"}},
+                { "tar" :       {"ref": "tarDownloader"}},
+                { "phar" :      {"ref": "pharDownloader"}},
+                { "file" :      {"ref": "fileDownloader"}}
+            ]
         }
     },
-    "downloaders": {
-        "git":  "Composer\\Downloader\\GitDownloader",
-        "svn":  "Composer\\Downloader\\SvnDownloader",
-        "hg":   "Composer\\Downloader\\HgDownloader",
-        "pear": "Composer\\Downloader\\PearDownloader",
-        "zip":  "Composer\\Downloader\\ZipDownloader",
-        "tar":  "Composer\\Downloader\\TarDownloader",
-        "phar": "Composer\\Downloader\\PharDownloader",
-        "file": "Composer\\Downloader\\FileDownloader"
+
+    "libraryInstaller": { "class": "Composer\\Installer\\LibraryInstaller" },
+    "metapackageInstaller": { "class": "Composer\\Installer\\MetapackageInstaller" },
+    "installerInstaller": { "class": "Composer\\Installer\\InstallerInstaller" },
+    "defaultInstaller": { "class": "Composer\\Installer\\LibraryInstaller" },
+
+    "installerManager": {
+        "default-for": "Composer\\Installer\\InstallationManager",
+        "class": "Composer\\Installer\\InstallationManager",
+        "args": {
+            "vendorDir": {"param": "vendor-dir"},
+            "installers": [
+                { "library" :            {"ref": "libraryInstaller"}},
+                { "composer-installer" : {"ref": "installerInstaller"}},
+                { "metapackage" :        {"ref": "metapackageInstaller"}},
+                { "" :                   {"ref": "defaultInstaller"}}
+            ]
+        }
     },
-    "installers": {
-        "library":              "Composer\\Installer\\LibraryInstaller",
-        "composer-installer":   "Composer\\Installer\\InstallerInstaller",
-        "metapackage":          "Composer\\Installer\\MetapackageInstaller",
-        "*":                    "Composer\\Installer\\LibraryInstaller"
+
+    "composerRepositoryFactory": { "class": "Composer\\Repository\\ComposerRepositoryFactory" },
+    "vcsRepositoryFactory": { "class": "Composer\\Repository\\VcsRepositoryFactory" },
+    "packageRepositoryFactory": { "class": "Composer\\Repository\\PackageRepositoryFactory" },
+    "pearRepositoryFactory": { "class": "Composer\\Repository\\PearRepositoryFactory" },
+
+    "repositoryManager": {
+        "default-for": "Composer\\Repository\\RepositoryManager",
+        "class": "Composer\\Repository\\RepositoryManager",
+        "args": {
+            "repositories": [
+                { "composer" :   {"ref": "composerRepositoryFactory"}},
+                { "vcs" :        {"ref": "vcsRepositoryFactory"}},
+                { "git" :        {"ref": "vcsRepositoryFactory"}},
+                { "svn" :        {"ref": "vcsRepositoryFactory"}},
+                { "hg" :         {"ref": "vcsRepositoryFactory"}},
+                { "package" :    {"ref": "packageRepositoryFactory"}},
+                { "pear" :       {"ref": "pearRepositoryFactory"}}
+            ]
+        }
     },
-    "repository-factories": {
-        "composer":     "Composer\\Repository\\ComposerRepositoryFactory",
-        "vcs":          "Composer\\Repository\\VcsRepositoryFactory",
-        "package":      "Composer\\Repository\\PackageRepositoryFactory",
-        "pear":         "Composer\\Repository\\PearRepositoryFactory",
-        "git":          "Composer\\Repository\\VcsRepositoryFactory",
-        "svn":          "Composer\\Repository\\VcsRepositoryFactory",
-        "hg":           "Composer\\Repository\\VcsRepositoryFactory"
+    "installer": {
+        "class": "Composer\\Installer",
+        "instance-of": "Composer\\Installer"
     }
 }
