@@ -91,7 +91,7 @@ class LibraryInstallerTest extends TestCase
         $package = $this->createPackageMock();
 
         $package
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPrettyName')
             ->will($this->returnValue('some/package'));
 
@@ -121,7 +121,7 @@ class LibraryInstallerTest extends TestCase
         $target  = $this->createPackageMock();
 
         $initial
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPrettyName')
             ->will($this->returnValue('package1'));
 
@@ -160,7 +160,7 @@ class LibraryInstallerTest extends TestCase
         $package = $this->createPackageMock();
 
         $package
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPrettyName')
             ->will($this->returnValue('pkg'));
 

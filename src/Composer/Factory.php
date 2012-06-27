@@ -222,7 +222,6 @@ class Factory
         $dm->setDownloader('git', new Downloader\GitDownloader($io));
         $dm->setDownloader('svn', new Downloader\SvnDownloader($io));
         $dm->setDownloader('hg', new Downloader\HgDownloader($io));
-        $dm->setDownloader('pear', new Downloader\PearDownloader($io));
         $dm->setDownloader('zip', new Downloader\ZipDownloader($io));
         $dm->setDownloader('tar', new Downloader\TarDownloader($io));
         $dm->setDownloader('phar', new Downloader\PharDownloader($io));
@@ -243,6 +242,7 @@ class Factory
     {
         $im = new Installer\InstallationManager($vendorDir);
         $im->addInstaller(new Installer\LibraryInstaller($vendorDir, $binDir, $dm, $io, null));
+        $im->addInstaller(new Installer\PearInstaller($vendorDir, $binDir, $dm, $io, 'pear-library'));
         $im->addInstaller(new Installer\InstallerInstaller($vendorDir, $binDir, $dm, $io, $im, $rm->getLocalRepositories()));
         $im->addInstaller(new Installer\MetapackageInstaller($io));
 
