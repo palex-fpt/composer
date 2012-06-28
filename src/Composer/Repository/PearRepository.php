@@ -43,7 +43,7 @@ class PearRepository extends ArrayRepository
      */
     private $vendorAlias;
 
-    public function __construct(array $repoConfig, IOInterface $io, Config $config, RemoteFilesystem $rfs = null)
+    public function __construct(array $repoConfig, IOInterface $io, RemoteFilesystem $rfs = null)
     {
         if (!preg_match('{^https?://}', $repoConfig['url'])) {
             $repoConfig['url'] = 'http://'.$repoConfig['url'];

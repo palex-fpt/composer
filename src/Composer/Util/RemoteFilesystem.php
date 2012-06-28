@@ -36,9 +36,9 @@ class RemoteFilesystem
      *
      * @param IOInterface $io The IO instance
      */
-    public function __construct(IOInterface $io)
+    public function __construct(IOInterface $io = null)
     {
-        $this->io = $io;
+        $this->io = $io ?: new \Composer\IO\NullIO();
     }
 
     /**

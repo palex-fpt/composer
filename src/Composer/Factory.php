@@ -100,6 +100,12 @@ class Factory
         return $repos;
     }
 
+    private function createComposerFile()
+    {
+        return getenv('COMPOSER') ?: 'composer.json';
+
+    }
+
     /**
      * Creates a Composer instance
      *
@@ -112,6 +118,9 @@ class Factory
     public function createComposer(IOInterface $io, $localConfig = null)
     {
         $rfs = new RemoteFilesystem($io);
+
+        $configFactory = new ConfigFactory();
+        $config = $configFactory->createConfig($composerFile);
 
         // load Composer configuration
         if (null === $localConfig) {
@@ -258,6 +267,7 @@ class Factory
     {
         $factory = new static();
 
+        return $container->getInstance('composer');
         return $factory->createComposer($io, $config);
     }
 }

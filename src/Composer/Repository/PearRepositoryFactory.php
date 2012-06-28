@@ -21,18 +21,16 @@ use Composer\IO\IOInterface;
  */
 class PearRepositoryFactory implements RepositoryFactoryInterface
 {
-    private $config;
     private $io;
     private $rfs;
 
-    public function __construct(Config $config, IOInterface $io, RemoteFilesystem $rfs = null)
+    public function __construct(IOInterface $io, RemoteFilesystem $rfs = null)
     {
-        $this->config = $config;
         $this->io = $io;
         $this->rfs = $rfs;
     }
 
     public function createRepository($config) {
-        return new PearRepository($config, $this->io, $this->config, $this->rfs);
+        return new PearRepository($config, $this->io, $this->rfs);
     }
 }

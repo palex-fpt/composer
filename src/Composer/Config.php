@@ -17,77 +17,17 @@ namespace Composer;
  */
 class Config
 {
-    public static $defaultConfig = array(
-        'process-timeout' => 300,
-        'vendor-dir' => 'vendor',
-        'bin-dir' => '{$vendor-dir}/bin',
-        'notify-on-install' => true,
-    );
-
-    public static $defaultRepositories = array(
-        'packagist' => array(
-            'type' => 'composer',
-            'url' => 'http://packagist.org',
-        )
-    );
-
     private $config;
-    private $repositories;
 
     public function __construct()
     {
-        // load defaults
-        $defaultConfig = new \Composer\Json\JsonFile(__DIR__.'/config.json');
-        $this->config = $defaultConfig->read();
-    }
+        $resultConfig = array();
 
-    /**
-     * Merges new config values with the existing ones (overriding)
-     *
-     * @param array $config
-     */
-    public function merge(array $config)
-    {
-        // override defaults with given config
-        if (!empty($config['config']) && is_array($config['config'])) {
-            $this->config = array_replace_recursive($this->config, $config['config']);
+        foreach (func_get_args() as $config) {
+            $resultConfig = array_replace_recursive($resultConfig, $config);
         }
 
-        if (!empty($config['repositories']) && is_array($config['repositories'])) {
-            $this->repositories = array_reverse($this->repositories, true);
-            $newRepos = array_reverse($config['repositories'], true);
-            foreach ($newRepos as $name => $repository) {
-                // disable a repository by name
-                if (false === $repository) {
-                    unset($this->repositories[$name]);
-                    continue;
-                }
-
-                // disable a repository with an anonymous {"name": false} repo
-                foreach ($this->repositories as $repoName => $repoSpec) {
-                    if (isset($repository[$repoName]) && false === $repository[$repoName]) {
-                        unset($this->repositories[$repoName]);
-                        continue 2;
-                    }
-                }
-
-                // store repo
-                if (is_int($name)) {
-                    $this->repositories[] = $repository;
-                } else {
-                    $this->repositories[$name] = $repository;
-                }
-            }
-            $this->repositories = array_reverse($this->repositories, true);
-        }
-    }
-
-    /**
-     * @return array
-     */
-    public function getRepositories()
-    {
-        return $this->repositories;
+        $this->config = $resultConfig;
     }
 
     /**

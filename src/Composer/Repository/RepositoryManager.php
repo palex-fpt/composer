@@ -29,14 +29,23 @@ class RepositoryManager
     /** @var RepositoryInterface[] */
     private $repositories = array();
     /** @var RepositoryFactoryInterface[] */
-    private $repositoryClasses = array();
+    private $repositoryFactories = array();
     private $io;
     private $config;
 
-    public function __construct(IOInterface $io, Config $config)
+    /**
+     * @param RepositoryInterface $localRepository
+     * @param RepositoryInterface $localDevRepository
+     * @param RepositoryFactoryInterface[] $repositoryFactories
+     */
+    public function __construct(RepositoryInterface $localRepository, RepositoryInterface $localDevRepository, $repositoryFactories, JsonFile $repositories)
     {
-        $this->io = $io;
-        $this->config = $config;
+        $this->localRepository = $localRepository;
+        $this->localDevRepository = $localDevRepository;
+        $this->repositoryFactories = $repositoryFactories;
+
+        // initialize repositories
+
     }
 
     /**

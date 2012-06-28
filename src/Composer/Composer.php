@@ -13,12 +13,15 @@
 namespace Composer;
 
 use Composer\Package\PackageInterface;
+use Composer\Util\RemoteFilesystem;
 use Composer\Package\Locker;
 use Composer\Repository\RepositoryManager;
 use Composer\Installer\InstallationManager;
 use Composer\Downloader\DownloadManager;
 
 /**
+ * It is service locator. It does not responsible for anything useful.
+ *
  * @author Jordi Boggiano <j.boggiano@seld.be>
  * @author Konstantin Kudryashiv <ever.zet@gmail.com>
  */
@@ -26,35 +29,34 @@ class Composer
 {
     const VERSION = '@package_version@';
 
-    /**
-     * @var Package\PackageInterface
-     */
-    private $package;
+    private $config;                // configuration
+    private $package;               // root package
+    private $locker;                // lock file reader/writer aka 'packages to be installed'
 
-    /**
-     * @var Locker
-     */
-    private $locker;
+    private $repositoryManager;     // manages list of repositories. there are three main groups 'local-installed', 'local-dev-installed' and 'available'
+    private $downloadManager;       // manages list of downloaders (tbh its package managers)
+    private $installationManager;   // manages installers (post-download processors)
+    private $autoloadGenerator;   // hides in installer?
+    private $remoteFilesystem;    // hides in repositoryManager and downloadManager ?
 
-    /**
-     * @var Repository\RepositoryManager
-     */
-    private $repositoryManager;
-
-    /**
-     * @var Downloader\DownloadManager
-     */
-    private $downloadManager;
-
-    /**
-     * @var Installer\InstallationManager
-     */
-    private $installationManager;
-
-    /**
-     * @var Config
-     */
-    private $config;
+    public function __construct(
+//        Config $config,
+//        PackageInterface $rootPackage,
+//        Locker $locker,
+//        RepositoryManager $repositoryManager,
+//        DownloadManager $downloadManager,
+//        InstallationManager $installationManager,
+//        RemoteFilesystem $remoteFilesystem
+    )
+    {
+//        $this->config = $config;
+//        $this->rootPackage = $rootPackage;
+//        $this->locker = $locker;
+//        $this->repositoryManager = $repositoryManager;
+//        $this->downloadManager = $downloadManager;
+//        $this->installationManager = $installationManager;
+//        $this->remoteFilesystem = $remoteFilesystem;
+    }
 
     /**
      * @param  Package\PackageInterface $package

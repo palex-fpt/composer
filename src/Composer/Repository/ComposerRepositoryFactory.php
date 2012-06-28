@@ -23,10 +23,10 @@ class ComposerRepositoryFactory implements RepositoryFactoryInterface
     protected $config;
     protected $io;
 
-    public function __construct(Config $config, IOInterface $io)
+    public function __construct()
     {
-        $this->config = $config;
-        $this->io = $io;
+//        $this->config = $config;
+//        $this->io = $io;
     }
 
     public function createRepository($config) {

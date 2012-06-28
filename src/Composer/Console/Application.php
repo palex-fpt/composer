@@ -86,6 +86,13 @@ class Application extends BaseApplication
         return parent::doRun($input, $output);
     }
 
+    private function getConfig()
+    {
+        $configFactory = new \Composer\ConfigFactory();
+        $config = $configFactory->createConfig();
+        return $config;
+    }
+
     /**
      * @param  bool               $required
      * @return \Composer\Composer
@@ -94,9 +101,11 @@ class Application extends BaseApplication
     {
         if (null === $this->composer) {
             try {
-                $this->composer = Factory::create($this->io);
+                $container = new \Composer\DependencyContainer($this->getConfig()->getArray());
+                $container->setParameter('io', $this->getIO());
+                $this->composer = $container->getInstance('composer');
             } catch (\InvalidArgumentException $e) {
-                if ($required) {
+                if (1 || $required) {
                     $this->io->write($e->getMessage());
                     exit(1);
                 }
@@ -104,6 +113,13 @@ class Application extends BaseApplication
         }
 
         return $this->composer;
+    }
+
+    public function getContainer($required = true)
+    {
+        $container = new \Composer\DependencyContainer($this->getConfig()->getArray());
+        $container->setParameter('io', $this->getIO());
+        return $container;
     }
 
     /**
@@ -119,6 +135,9 @@ class Application extends BaseApplication
      */
     protected function getDefaultCommands()
     {
+        $container = new \Composer\DependencyContainer($this->getConfig()->getArray());
+        $container->setParameter('io', $this->getIO());
+
         $commands = parent::getDefaultCommands();
         $commands[] = new Command\AboutCommand();
         $commands[] = new Command\DependsCommand();

@@ -20,13 +20,11 @@ use Composer\IO\IOInterface;
  */
 class VcsRepositoryFactory implements RepositoryFactoryInterface
 {
-    private $config;
     private $io;
     private $drivers;
 
-    public function __construct(Config $config, IOInterface $io, $drivers = null)
+    public function __construct(IOInterface $io, $drivers = null)
     {
-        $this->config = $config;
         $this->io = $io;
         $this->drivers = $drivers;
     }

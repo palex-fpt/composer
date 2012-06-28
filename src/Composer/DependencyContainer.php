@@ -16,37 +16,33 @@ class DependencyContainer
     public function __construct($config)
     {
         // build configuration
-        foreach ($config as $id => $entry) {
-            if ('parameters' == $id) {
-                $this->parameters = $entry;
+        foreach ($config as $key => $value) {
+            if ('objects' != $key) {
+                $this->parameters[$key] = $value;
             } else {
-                $lifetime = $entry['lifetime'] ?: DependencyDefinition::LIFETIME_SINGLE;
-                $class = $entry['class'];
-                $defaultFor = $entry['default-for'] ?: null;
-                $arguments = array();
-                foreach ($entry['args'] ?: array() as $key => $argValue) {
-                    if (isset($argValue[ArgumentDefinition::REF])) {
-                        $arguments[$key] = new ArgumentDefinition(ArgumentDefinition::REF, $argValue[ArgumentDefinition::REF]);
-                    } elseif (isset($argValue[ArgumentDefinition::PARAM])) {
-                        $arguments[$key] = new ArgumentDefinition(ArgumentDefinition::PARAM, $argValue[ArgumentDefinition::PARAM]);
-                    } elseif (isset($argValue[ArgumentDefinition::INSTANCE_OF])) {
-                        $arguments[$key] = new ArgumentDefinition(ArgumentDefinition::INSTANCE_OF, $argValue[ArgumentDefinition::INSTANCE_OF]);
-                    } elseif (isset($argValue[ArgumentDefinition::VALUE])) {
-                        $arguments[$key] = new ArgumentDefinition(ArgumentDefinition::VALUE, $argValue[ArgumentDefinition::VALUE]);
-                    } else {
-                        // if value is array - try build it's arguments
-                        $arguments[$key] = new ArgumentDefinition(ArgumentDefinition::VALUE, $argValue);
+                foreach ($value as $id => $entry) {
+                    $lifetime = $this->getValue($entry, 'lifetime', DependencyDefinition::LIFETIME_SINGLE);
+                    $class = $this->getValue($entry, 'class', null);
+                    $defaultFor = $this->getValue($entry, 'default-for', null);
+                    $arguments = array();
+                    foreach ($this->getValue($entry, 'args', array()) as $key => $argValue) {
+                        $arguments[$key] = $this->buildValue($argValue);
                     }
-                }
-                $this->config[$id] = new DependencyDefinition(
-                    $id,
-                    $class,
-                    $defaultFor,
-                    $lifetime,
-                    $arguments
-                );
-                if ($defaultFor) {
-                    $this->classDefaults[$defaultFor] = $this->config[$id];
+                    $value = $this->getValue($entry, 'value', null);
+                    if (!empty($value)) {
+                        $value = $this->buildValue($value);
+                    }
+                    $this->config[$id] = new DependencyDefinition(
+                        $id,
+                        $class,
+                        $defaultFor,
+                        $lifetime,
+                        $arguments,
+                        $value
+                    );
+                    if ($defaultFor) {
+                        $this->classDefaults[$defaultFor] = $this->config[$id];
+                    }
                 }
             }
         }
@@ -73,36 +69,98 @@ class DependencyContainer
         return $this->refs[$definition->getId()];
     }
 
+    public function setParameter($name, $value)
+    {
+        $this->parameters[$name] = $value;
+    }
+
+    private function getValue($collection, $key, $default)
+    {
+        if (isset($collection[$key])) {
+            return $collection[$key];
+        }
+        return $default;
+    }
+
+    private $innerId = 1;
+    private function buildValue($argValue)
+    {
+        if (!is_array($argValue)) {
+            return new ArgumentDefinition(ArgumentDefinition::VALUE, $argValue);
+        } elseif (isset($argValue[ArgumentDefinition::INNER_DEF])) {
+            $className = $argValue['class'];
+            $args = $this->getValue($argValue, 'args', array());
+            $arrayArgs = array();
+            foreach ($args as $key => $value) {
+                $arrayArgs[$key] = $this->buildValue($value);
+            }
+            $defId = 'innerDef_'.$this->innerId++;
+            $this->config[$defId] = new DependencyDefinition(
+                $defId,
+                $className,
+                null,
+                DependencyDefinition::LIFETIME_INSTANCE,
+                $arrayArgs,
+                null
+            );
+            return new ArgumentDefinition(ArgumentDefinition::REF, $defId);
+        } elseif (isset($argValue[ArgumentDefinition::REF])) {
+            return new ArgumentDefinition(ArgumentDefinition::REF, $argValue[ArgumentDefinition::REF]);
+        } elseif (isset($argValue[ArgumentDefinition::PARAM])) {
+            return new ArgumentDefinition(ArgumentDefinition::PARAM, $argValue[ArgumentDefinition::PARAM]);
+        } elseif (isset($argValue[ArgumentDefinition::INSTANCE_OF])) {
+            return new ArgumentDefinition(ArgumentDefinition::INSTANCE_OF, $argValue[ArgumentDefinition::INSTANCE_OF]);
+        } elseif (isset($argValue[ArgumentDefinition::VALUE])) {
+            return new ArgumentDefinition(ArgumentDefinition::VALUE, $this->buildValue($argValue[ArgumentDefinition::VALUE]));
+        } else {
+            $arrayArgs = array();
+            foreach ($argValue as $key => $value) {
+                $arrayArgs[$key] = $this->buildValue($value);
+            }
+            return new ArgumentDefinition(ArgumentDefinition::VALUE, $arrayArgs);
+        }
+    }
+
     /**
      * @param DependencyDefinition $definition
      * @return mixed
      */
     private function createInstance(DependencyDefinition $definition)
     {
+        var_dump($definition->getClass());
         $className = $definition->getClass();
+        if (empty($className)) {
+            return $this->getArgumentInstance($definition->getValue());
+        }
         $ref = new \ReflectionClass($className);
         $argumentDefs = $definition->getArguments();
         $args = array();
-        foreach ($ref->getConstructor()->getParameters() as $parameter) {
-            if (isset($argumentDefs[$parameter->getName()])) {
-                $argumentDef = $argumentDefs[$parameter->getName()];
-                $args[] = $this->getArgumentInstance($argumentDef);
-            } elseif ($parameter->getClass()) {
-                $args[] = $this->getInstanceForClass($parameter->getClass()->getName());
-            } elseif ($parameter->isDefaultValueAvailable()) {
-                $args[] = $parameter->getDefaultValue();
-            } elseif ($parameter->isOptional()) {
-                $args[] = null;
-            } else {
-                throw new \InvalidArgumentException($parameter->getName());
+        $constructor = $ref->getConstructor();
+
+        if ($constructor) {
+            foreach ($constructor->getParameters() as $parameter) {
+                if (isset($argumentDefs[$parameter->getName()])) {
+                    $argumentDef = $argumentDefs[$parameter->getName()];
+                    $args[] = $this->getArgumentInstance($argumentDef);
+                } elseif ($parameter->getClass()) {
+                    $args[] = $this->getInstanceForClass($parameter->getClass()->getName());
+                } elseif ($parameter->isDefaultValueAvailable()) {
+                    $args[] = $parameter->getDefaultValue();
+                } elseif ($parameter->isOptional()) {
+                    $args[] = null;
+                } else {
+                    throw new \InvalidArgumentException($parameter->getName());
+                }
             }
+            return $ref->newInstanceArgs($args);
         }
-        return $ref->newInstanceArgs($args);
+
+        return $ref->newInstance();
     }
 
     private function getInstanceForClass($className) {
         if (isset($this->classDefaults[$className])) {
-            return $this->getInstance($this->classDefaults[$className]);
+            return $this->getInstance($this->classDefaults[$className]->getId());
         }
 
         throw new \InvalidArgumentException(sprintf('Requested instance of `%s`. There is no entry with default-for satisfying it.', $className));
@@ -115,12 +173,27 @@ class DependencyContainer
                 return $this->getInstance($argDef->getValue());
 
             case ArgumentDefinition::PARAM:
+                if (!isset($this->parameters[$argDef->getValue()])) {
+                    throw new \InvalidArgumentException(sprintf('Requested unknown parameter: `%s`', $argDef->getValue()));
+                }
                 return $this->parameters[$argDef->getValue()];
 
             case ArgumentDefinition::INSTANCE_OF:
                 return $this->getInstanceForClass($argDef->getValue());
 
             case ArgumentDefinition::VALUE:
+                if (is_string($argDef->getValue())) {
+                    $parameters = $this->parameters;
+                    return preg_replace_callback('#\{\$(.+)\}#', function ($match) use ($parameters) {
+                        return isset($parameters[$match[1]]) ? $parameters[$match[1]] : $match[1];
+                    }, $argDef->getValue());
+                } elseif (is_array($argDef->getValue())) {
+                    $values = array();
+                    foreach ($argDef->getValue() as $key => $value) {
+                        $values[$key] = $this->getArgumentInstance($value);
+                    }
+                    return $values;
+                }
                 return $argDef->getValue();
 
             default:
@@ -139,13 +212,15 @@ class DependencyDefinition
     private $defaultFor;
     private $lifetime;
     private $arguments;
+    private $value;
 
     public function __construct(
         $id,
         $class,
         $defaultFor,
         $lifetime,
-        $arguments
+        $arguments,
+        $value
     )
     {
         $this->id = $id;
@@ -153,6 +228,7 @@ class DependencyDefinition
         $this->defaultFor = $defaultFor;
         $this->lifetime = $lifetime;
         $this->arguments = $arguments;
+        $this->value = $value;
     }
 
     public function getArguments()
@@ -179,6 +255,11 @@ class DependencyDefinition
     {
         return $this->id;
     }
+
+    public function getValue()
+    {
+        return $this->value;
+    }
 }
 
 class ArgumentDefinition {
@@ -186,6 +267,7 @@ class ArgumentDefinition {
     const REF = 'ref';
     const PARAM = 'param';
     const INSTANCE_OF = 'instance-of';
+    const INNER_DEF = 'class';
 
     private $type;
     private $value;
