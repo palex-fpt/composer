@@ -181,27 +181,18 @@ class InstallerTest extends TestCase
                 }));
         }
 
-        $container = new TinyContainer($config->getObject('objects'), $config->getParameters());
+        $container = new Container();
         $container->setParameter('io', $io);
         $container->setParameter('config', $config);
+        $container->setParameter('home', $config->getParameters('home'));
+        $container->setParameter('vendor-dir', $config->getParameters('vendor-dir'));
 
         $container->setParameter('installed', $installed);
         $container->setParameter('installedDev', $installedDev);
         $container->setParameter('lockJsonMock', $lockJsonMock);
         $container->setParameter('autoloadGenerator', $this->getMock('Composer\Autoload\AutoloadGenerator'));
-//        $locker = new Locker($lockJsonMock, $repositoryManager, $composer->getInstallationManager(), md5(json_encode($composerConfig)));
-//        $composer->setLocker($locker);
-
-//        $autoloadGenerator = $this->getMock('Composer\Autoload\AutoloadGenerator');
-
-        $composer = $container->getInstance('composer');
-        $installer = $container->getInstance('installer');
-//        $installer = Installer::create(
-//            $io,
-//            $composer,
-//            null,
-//            $autoloadGenerator
-//        );
+        $composer = $container->getComposer();
+        $installer = $container->getInstaller();
 
         $application = new Application;
         $application->get('install')->setCode(function ($input, $output) use ($installer) {

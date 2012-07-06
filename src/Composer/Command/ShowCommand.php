@@ -48,8 +48,7 @@ EOT
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $container = $this->getApplication()->getContainer();
-        /** @var $shower \Composer\RepoLister */
-        $repoLister = $container->getInstance('repoLister');
+        $repoLister = $container->getRepoLister();
 
         if ($input->getArgument('package')) {
             $repoLister->showPackage($input->getOption('platform'), $input->getOption('installed'), $input->getArgument('package'), $input->getArgument('version'));
