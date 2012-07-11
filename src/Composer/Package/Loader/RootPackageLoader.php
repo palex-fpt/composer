@@ -14,9 +14,7 @@ namespace Composer\Package\Loader;
 
 use Composer\Package\BasePackage;
 use Composer\Config;
-use Composer\Factory;
 use Composer\Package\Version\VersionParser;
-use Composer\Repository\RepositoryManager;
 use Composer\Util\ProcessExecutor;
 
 /**
@@ -28,13 +26,13 @@ use Composer\Util\ProcessExecutor;
  */
 class RootPackageLoader extends ArrayLoader
 {
-    private $manager;
+//    private $manager;
     private $config;
     private $process;
 
-    public function __construct(RepositoryManager $manager, Config $config, VersionParser $parser = null, ProcessExecutor $process = null)
+    public function __construct(Config $config, VersionParser $parser = null, ProcessExecutor $process = null)
     {
-        $this->manager = $manager;
+//        $this->manager = $manager;
         $this->config = $config;
         $this->process = $process ?: new ProcessExecutor();
         parent::__construct($parser);
@@ -42,14 +40,14 @@ class RootPackageLoader extends ArrayLoader
 
     public function load($config)
     {
+        $config = $this->config->getRoot();
         if (!isset($config['name'])) {
             $config['name'] = '__root__';
         }
         if (!isset($config['version'])) {
             // override with env var if available
-            if (getenv('COMPOSER_ROOT_VERSION')) {
-                $version = getenv('COMPOSER_ROOT_VERSION');
-            } else {
+            $version = $this->config->get('root-version');
+            if (!$version) {
                 $version = $this->guessVersion($config);
             }
 
@@ -82,12 +80,6 @@ class RootPackageLoader extends ArrayLoader
         if (isset($config['minimum-stability'])) {
             $package->setMinimumStability(VersionParser::normalizeStability($config['minimum-stability']));
         }
-
-        $repos = Factory::createDefaultRepositories(null, $this->config, $this->manager);
-        foreach ($repos as $repo) {
-            $this->manager->addRepository($repo);
-        }
-        $package->setRepositories($this->config->getRepositories());
 
         return $package;
     }

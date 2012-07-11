@@ -35,7 +35,7 @@ class InstallationManagerTest extends \PHPUnit_Framework_TestCase
                 return $arg === 'vendor';
             }));
 
-        $manager   = new InstallationManager('vendor');
+        $manager   = new InstallationManager(array());
 
         $manager->addInstaller($installer);
         $this->assertSame($installer, $manager->getInstaller('vendor'));
@@ -77,7 +77,7 @@ class InstallationManagerTest extends \PHPUnit_Framework_TestCase
     public function testInstall()
     {
         $installer = $this->createInstallerMock();
-        $manager   = new InstallationManager('vendor');
+        $manager   = new InstallationManager();
         $manager->addInstaller($installer);
 
         $package   = $this->createPackageMock();
@@ -105,7 +105,7 @@ class InstallationManagerTest extends \PHPUnit_Framework_TestCase
     public function testUpdateWithEqualTypes()
     {
         $installer = $this->createInstallerMock();
-        $manager   = new InstallationManager('vendor');
+        $manager   = new InstallationManager();
         $manager->addInstaller($installer);
 
         $initial   = $this->createPackageMock();
@@ -139,7 +139,7 @@ class InstallationManagerTest extends \PHPUnit_Framework_TestCase
     {
         $libInstaller = $this->createInstallerMock();
         $bundleInstaller = $this->createInstallerMock();
-        $manager    = new InstallationManager('vendor');
+        $manager    = new InstallationManager();
         $manager->addInstaller($libInstaller);
         $manager->addInstaller($bundleInstaller);
 
@@ -185,7 +185,7 @@ class InstallationManagerTest extends \PHPUnit_Framework_TestCase
     public function testUninstall()
     {
         $installer = $this->createInstallerMock();
-        $manager   = new InstallationManager('vendor');
+        $manager   = new InstallationManager();
         $manager->addInstaller($installer);
 
         $package   = $this->createPackageMock();

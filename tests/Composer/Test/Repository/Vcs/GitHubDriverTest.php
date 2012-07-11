@@ -23,8 +23,7 @@ class GitHubDriverTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->config = new Config();
-        $this->config->merge(array(
+        $this->config = new Config(array(
             'config' => array(
                 'home' => sys_get_temp_dir() . '/composer-test',
             ),

@@ -13,6 +13,8 @@
 namespace Composer\Console;
 
 use Symfony\Component\Console\Application as BaseApplication;
+use Composer\ConfigFactory;
+use Composer\DependencyContainer\TinyContainer;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -21,7 +23,6 @@ use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Composer\Command;
 use Composer\Command\Helper\DialogHelper;
 use Composer\Composer;
-use Composer\Factory;
 use Composer\IO\IOInterface;
 use Composer\IO\ConsoleIO;
 use Composer\Util\ErrorHandler;
@@ -94,7 +95,7 @@ class Application extends BaseApplication
     {
         if (null === $this->composer) {
             try {
-                $this->composer = Factory::create($this->io);
+                $this->composer = $this->getContainer()->getInstance('composer');
             } catch (\InvalidArgumentException $e) {
                 if ($required) {
                     $this->io->write($e->getMessage());
@@ -104,6 +105,24 @@ class Application extends BaseApplication
         }
 
         return $this->composer;
+    }
+
+    private function getConfig()
+    {
+        $configFactory = new ConfigFactory();
+        $config = $configFactory->createConfig();
+
+        return $config;
+    }
+
+    public function getContainer()
+    {
+        $config = $this->getConfig();
+        $container = new TinyContainer($config->getObject('objects'), $config->getParameters());
+        $container->setParameter('io', $this->getIO());
+        $container->setParameter('config', $config);
+
+        return $container;
     }
 
     /**

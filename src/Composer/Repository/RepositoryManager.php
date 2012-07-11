@@ -12,7 +12,6 @@
 
 namespace Composer\Repository;
 
-use Composer\IO\IOInterface;
 use Composer\Config;
 
 /**
@@ -27,14 +26,29 @@ class RepositoryManager
     private $localRepository;
     private $localDevRepository;
     private $repositories = array();
-    private $repositoryClasses = array();
+    /** @var RepositoryFactoryInterface[] */
+    private $repositoryFactories = array();
     private $io;
     private $config;
 
-    public function __construct(IOInterface $io, Config $config)
+    /**
+     * @param RepositoryInterface          $localRepository
+     * @param RepositoryInterface          $localDevRepository
+     * @param RepositoryFactoryInterface[] $repositoryFactories
+     */
+    public function __construct(RepositoryInterface $localRepository, RepositoryInterface $localDevRepository, $repositoryFactories, Config $config)
     {
-        $this->io = $io;
-        $this->config = $config;
+        $this->localRepository = $localRepository;
+        $this->localDevRepository = $localDevRepository;
+        $this->repositoryFactories = $repositoryFactories;
+
+        // initialize repositories
+        $repositories = $config->getObject('repositories');
+
+        foreach ($repositories as $name => $repository) {
+            $repoType = $repository['type'];
+            $this->addRepository($this->createRepository($repoType, $repository));
+        }
     }
 
     /**
@@ -86,31 +100,21 @@ class RepositoryManager
     /**
      * Returns a new repository for a specific installation type.
      *
-     * @param  string                   $type   repository type
-     * @param  string                   $config repository configuration
+     * @param  string                    $type   repository type
+     * @param  string                    $config repository configuration
      * @return RepositoryInterface
-     * @throws InvalidArgumentException if repository for provided type is not registeterd
+     * @throws \InvalidArgumentException if repository for provided type is not registeterd
      */
     public function createRepository($type, $config)
     {
-        if (!isset($this->repositoryClasses[$type])) {
+        if (!isset($this->repositoryFactories[$type])) {
             throw new \InvalidArgumentException('Repository type is not registered: '.$type);
         }
 
-        $class = $this->repositoryClasses[$type];
+        /** @var $factory RepositoryFactoryInterface */
+        $factory = $this->repositoryFactories[$type];
 
-        return new $class($config, $this->io, $this->config);
-    }
-
-    /**
-     * Stores repository class for a specific installation type.
-     *
-     * @param string $type  installation type
-     * @param string $class class name of the repo implementation
-     */
-    public function setRepositoryClass($type, $class)
-    {
-        $this->repositoryClasses[$type] = $class;
+        return $factory->createRepository($config);
     }
 
     /**
@@ -124,16 +128,6 @@ class RepositoryManager
     }
 
     /**
-     * Sets local repository for the project.
-     *
-     * @param RepositoryInterface $repository repository instance
-     */
-    public function setLocalRepository(RepositoryInterface $repository)
-    {
-        $this->localRepository = $repository;
-    }
-
-    /**
      * Returns local repository for the project.
      *
      * @return RepositoryInterface
@@ -141,16 +135,6 @@ class RepositoryManager
     public function getLocalRepository()
     {
         return $this->localRepository;
-    }
-
-    /**
-     * Sets localDev repository for the project.
-     *
-     * @param RepositoryInterface $repository repository instance
-     */
-    public function setLocalDevRepository(RepositoryInterface $repository)
-    {
-        $this->localDevRepository = $repository;
     }
 
     /**

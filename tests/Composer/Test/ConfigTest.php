@@ -21,13 +21,25 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      */
     public function testAddPackagistRepository($expected, $localConfig, $systemConfig = null)
     {
-        $config = new Config();
-        if ($systemConfig) {
-            $config->merge(array('repositories' => $systemConfig));
-        }
-        $config->merge(array('repositories' => $localConfig));
+        $defaultConfig = array("packagist"=> array(
+            "type"=> "composer",
+            "url"=> "http://packagist.org"
+            ));
 
-        $this->assertEquals($expected, $config->getRepositories());
+        if ($systemConfig) {
+            $config = new Config(
+                array('config' => array('default-repositories' => $defaultConfig)),
+                array('config' => array('default-repositories' => $systemConfig)),
+                array('repositories' => $localConfig)
+            );
+        } else {
+            $config = new Config(
+                array('config' => array('default-repositories' => $defaultConfig)),
+                array('repositories' => $localConfig)
+            );
+        }
+
+        $this->assertEquals($expected, $config->getObject('repositories'));
     }
 
     public function dataAddPackagistRepository()
@@ -49,8 +61,8 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
         $data['local config adds above defaults'] = array(
             array(
-                1 => array('type' => 'vcs', 'url' => 'git://github.com/composer/composer.git'),
-                0 => array('type' => 'pear', 'url' => 'http://pear.composer.org'),
+                0 => array('type' => 'vcs', 'url' => 'git://github.com/composer/composer.git'),
+                1 => array('type' => 'pear', 'url' => 'http://pear.composer.org'),
                 'packagist' => array('type' => 'composer', 'url' => 'http://packagist.org'),
             ),
             array(
@@ -72,7 +84,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
         $data['local config can disable repos by name and re-add them anonymously to bring them above system config'] = array(
             array(
-                0 => array('type' => 'composer', 'url' => 'http://packagist.org'),
+                1 => array('type' => 'composer', 'url' => 'http://packagist.org'),
                 'example.com' => array('type' => 'composer', 'url' => 'http://example.com')
             ),
             array(

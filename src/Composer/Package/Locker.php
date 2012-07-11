@@ -40,12 +40,12 @@ class Locker
      * @param InstallationManager $installationManager installation manager instance
      * @param string              $hash                unique hash of the current composer configuration
      */
-    public function __construct(JsonFile $lockFile, RepositoryManager $repositoryManager, InstallationManager $installationManager, $hash)
+    public function __construct(JsonFile $lockFile, RepositoryManager $repositoryManager, InstallationManager $installationManager)
     {
         $this->lockFile          = $lockFile;
         $this->repositoryManager = $repositoryManager;
         $this->installationManager = $installationManager;
-        $this->hash = $hash;
+        $this->hash = $lockFile->getPath() ? md5_file($lockFile->getPath()) : null;
     }
 
     /**

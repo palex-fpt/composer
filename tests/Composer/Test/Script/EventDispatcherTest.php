@@ -39,7 +39,7 @@ class EventDispatcherTest extends TestCase
     {
         $dispatcher = $this->getMockBuilder('Composer\Script\EventDispatcher')
             ->setConstructorArgs(array(
-                $this->getMock('Composer\Composer'),
+                $this->getMockBuilder('Composer\Composer')->disableOriginalConstructor()->getMock(),
                 $io,
             ))
             ->setMethods(array('getListeners'))

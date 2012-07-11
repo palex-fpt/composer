@@ -13,6 +13,9 @@
 namespace Composer\Installer;
 
 use Composer\Composer;
+use Composer\Repository\RepositoryManager;
+use Composer\Config;
+use Composer\Downloader\DownloadManager;
 use Composer\IO\IOInterface;
 use Composer\Autoload\AutoloadGenerator;
 use Composer\Repository\InstalledRepositoryInterface;
@@ -25,19 +28,24 @@ use Composer\Package\PackageInterface;
  */
 class InstallerInstaller extends LibraryInstaller
 {
-    private $installationManager;
     private static $classCounter = 0;
+    private $rm;
 
     /**
      * @param IOInterface $io
      * @param Composer    $composer
      */
-    public function __construct(IOInterface $io, Composer $composer, $type = 'library')
+    public function __construct(IOInterface $io, RepositoryManager $rm, DownloadManager $dm, Config $config, $type = 'library')
     {
-        parent::__construct($io, $composer, 'composer-installer');
-        $this->installationManager = $composer->getInstallationManager();
+        parent::__construct($io, $dm, $config, 'composer-installer');
+        $this->rm = $rm;
+    }
 
-        foreach ($composer->getRepositoryManager()->getLocalRepositories() as $repo) {
+    public function setComposer(Composer $composer)
+    {
+        $this->composer = $composer;
+
+        foreach ($this->rm->getLocalRepositories() as $repo) {
             foreach ($repo->getPackages() as $package) {
                 if ('composer-installer' === $package->getType()) {
                     $this->registerInstaller($package);
@@ -96,7 +104,7 @@ class InstallerInstaller extends LibraryInstaller
             }
 
             $installer = new $class($this->io, $this->composer);
-            $this->installationManager->addInstaller($installer);
+            $this->composer->getInstallationManager()->addInstaller($installer);
         }
     }
 }

@@ -13,6 +13,7 @@
 namespace Composer\Installer;
 
 use Composer\Composer;
+use Composer\Config;
 use Composer\IO\IOInterface;
 use Composer\Downloader\DownloadManager;
 use Composer\Repository\InstalledRepositoryInterface;
@@ -41,16 +42,15 @@ class LibraryInstaller implements InstallerInterface
      * @param IOInterface $io
      * @param Composer    $composer
      */
-    public function __construct(IOInterface $io, Composer $composer, $type = 'library')
+    public function __construct(IOInterface $io, DownloadManager $dm, Config $config, $type = 'library')
     {
-        $this->composer = $composer;
-        $this->downloadManager = $composer->getDownloadManager();
+        $this->downloadManager = $dm;
         $this->io = $io;
         $this->type = $type;
 
         $this->filesystem = new Filesystem();
-        $this->vendorDir = rtrim($composer->getConfig()->get('vendor-dir'), '/');
-        $this->binDir = rtrim($composer->getConfig()->get('bin-dir'), '/');
+        $this->vendorDir = rtrim($config->get('vendor-dir'), '/');
+        $this->binDir = rtrim($config->get('bin-dir'), '/');
     }
 
     /**
@@ -278,4 +278,5 @@ class LibraryInstaller implements InstallerInterface
             'cd $SRC_DIR'."\n".
             '$BIN_TARGET "$@"'."\n";
     }
+
 }

@@ -1,0 +1,60 @@
+{
+    "default-repositories": {
+        "packagist": false
+    },
+    "objects": {
+        "locker": {
+            "default-for": "Composer\\Package\\Locker",
+            "class": "Composer\\Package\\Locker",
+            "args": {
+                "lockFile": { "class": null, "param": "lockJsonMock" }
+            }
+        },
+        "autoloadGenerator": {
+            "default-for": "Composer\\Autoload\\AutoloadGenerator",
+            "class": null,
+            "value": {"param": "autoloadGenerator"}
+        },
+        "installationManager": {
+            "default-for": "Composer\\Installer\\InstallationManager",
+            "class": "Composer\\Test\\Mock\\InstallationManagerMock",
+            "args": {
+                "vendorDir": "{$vendor-dir}",
+                "installers": {
+                }
+            }
+        },
+
+        "platformRepository": { "class": "Composer\\Repository\\PlatformRepository" },
+        "localRepository": {
+            "class": "Composer\\Test\\Mock\\InstalledFilesystemRepositoryMock",
+            "args": {
+                "data": { "param": "installed" }
+            }
+        },
+        "localDevRepository": {
+            "class": "Composer\\Test\\Mock\\InstalledFilesystemRepositoryMock",
+            "args": {
+                "data": { "param": "installedDev" }
+            }
+        },
+        "repositoryManager": {
+            "default-for": "Composer\\Repository\\RepositoryManager",
+            "class": "Composer\\Repository\\RepositoryManager",
+            "args": {
+                "localRepository": {"ref": "localRepository"},
+                "localDevRepository": {"ref": "localDevRepository"},
+                "repositoryFactories": {
+                    "composer" :   {"ref": "composerRepositoryFactory"},
+                    "vcs" :        {"ref": "vcsRepositoryFactory"},
+                    "git" :        {"ref": "vcsRepositoryFactory"},
+                    "svn" :        {"ref": "vcsRepositoryFactory"},
+                    "hg" :         {"ref": "vcsRepositoryFactory"},
+                    "package" :    {"ref": "packageRepositoryFactory"},
+                    "pear" :       {"ref": "pearRepositoryFactory"}
+                },
+                "repositories": { "class": "Composer\\Json\\JsonFile", "args": { "path": "{$composer.json}" } }
+            }
+        }
+    }
+}

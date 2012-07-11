@@ -1,0 +1,142 @@
+{
+    "process-timeout": 300,
+    "vendor-dir": "vendor",
+    "bin-dir": "{$vendor-dir}/bin",
+    "composer.json": "{$home}/composer.json",
+    "notify-on-install": true,
+    "prefer-source": false,
+
+    "default-repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "http://packagist.org"
+        }
+    },
+    "objects": {
+        "config": {
+            "default-for": "Composer\\Config",
+            "value": {"param": "config"}
+        },
+        "io": {
+            "default-for": "Composer\\IO\\IOInterface",
+            "value": {"param": "io"}
+        },
+
+        "locker": {
+            "default-for": "Composer\\Package\\Locker",
+            "class": "Composer\\Package\\Locker",
+            "args": {
+                "lockFile": { "class": "Composer\\Json\\JsonFile", "args": { "path": "{$home}/composer.lock" } },
+                "hash": null
+            }
+        },
+
+        "downloadManager": {
+            "default-for": "Composer\\Downloader\\DownloadManager",
+            "class": "Composer\\Downloader\\DownloadManager",
+            "args": {
+                "preferSource": {"param": "prefer-source"},
+                "downloaders": {
+                    "git" :       { "class": "Composer\\Downloader\\GitDownloader" },
+                    "svn" :       { "class": "Composer\\Downloader\\SvnDownloader" },
+                    "hg" :        { "class": "Composer\\Downloader\\HgDownloader" },
+                    "zip" :       { "class": "Composer\\Downloader\\ZipDownloader" },
+                    "tar" :       { "class": "Composer\\Downloader\\TarDownloader" },
+                    "phar" :      { "class": "Composer\\Downloader\\PharDownloader" },
+                    "file" :      { "class": "Composer\\Downloader\\FileDownloader" }
+                }
+            }
+        },
+
+        "libraryInstaller": { "class": "Composer\\Installer\\LibraryInstaller" },
+        "metapackageInstaller": { "class": "Composer\\Installer\\MetapackageInstaller" },
+        "installerInstaller": {
+            "class": "Composer\\Installer\\InstallerInstaller",
+            "properties": {
+                "composer": { "ref": "composer" }
+            }
+        },
+        "defaultInstaller": { "class": "Composer\\Installer\\LibraryInstaller" },
+
+        "installationManager": {
+            "default-for": "Composer\\Installer\\InstallationManager",
+            "class": "Composer\\Installer\\InstallationManager",
+            "args": {
+                "vendorDir": {"param": "vendor-dir"},
+                "installers": {
+                    "library" :            { "ref": "libraryInstaller" },
+                    "composer-installer" : { "ref": "installerInstaller"},
+                    "metapackage" :        { "ref": "metapackageInstaller" },
+                    "" :                   { "ref": "defaultInstaller"}
+                }
+            }
+        },
+
+        "platformRepository": { "class": "Composer\\Repository\\PlatformRepository" },
+        "localRepository": {
+            "class": "Composer\\Repository\\InstalledFilesystemRepository",
+            "args": {
+                "repositoryFile": { "class": "Composer\\Json\\JsonFile", "args": { "path": "{$vendor-dir}/composer/installed.json" } }
+            }
+        },
+        "localDevRepository": {
+            "class": "Composer\\Repository\\InstalledFilesystemRepository",
+            "args": {
+                "repositoryFile": { "class": "Composer\\Json\\JsonFile", "args": { "path": "{$vendor-dir}/composer/installed_dev.json" } }
+            }
+        },
+
+        "composerRepositoryFactory": { "class": "Composer\\Repository\\ComposerRepositoryFactory" },
+        "vcsRepositoryFactory": { "class": "Composer\\Repository\\VcsRepositoryFactory" },
+        "packageRepositoryFactory": { "class": "Composer\\Repository\\PackageRepositoryFactory" },
+        "pearRepositoryFactory": { "class": "Composer\\Repository\\PearRepositoryFactory" },
+
+        "repositoryManager": {
+            "default-for": "Composer\\Repository\\RepositoryManager",
+            "class": "Composer\\Repository\\RepositoryManager",
+            "args": {
+                "localRepository": {"ref": "localRepository"},
+                "localDevRepository": {"ref": "localDevRepository"},
+                "repositoryFactories": {
+                    "composer" :   {"ref": "composerRepositoryFactory"},
+                    "vcs" :        {"ref": "vcsRepositoryFactory"},
+                    "git" :        {"ref": "vcsRepositoryFactory"},
+                    "svn" :        {"ref": "vcsRepositoryFactory"},
+                    "hg" :         {"ref": "vcsRepositoryFactory"},
+                    "package" :    {"ref": "packageRepositoryFactory"},
+                    "pear" :       {"ref": "pearRepositoryFactory"}
+                },
+                "repositories": { "class": "Composer\\Json\\JsonFile", "args": { "path": "{$composer.json}" } }
+            }
+        },
+        "rootPackage": {
+            "factory": { "class": "Composer\\Package\\Loader\\RootPackageLoader" },
+            "method": "load",
+            "args": {
+                "config": { "param": "config" }
+            }
+        },
+        "composer": {
+            "class": "Composer\\Composer",
+            "default-for": "Composer\\Composer",
+            "args": {
+                "rootPackage": { "ref": "rootPackage" }
+            }
+        },
+        "installer": {
+            "class": "Composer\\Installer",
+            "args": {
+                "package": { "ref": "rootPackage" }
+            }
+        },
+
+        "repoLister": {
+            "class": "Composer\\RepoLister",
+            "args": {
+                "localRepository": {"ref": "localRepository"},
+                "localDevRepository": {"ref": "localDevRepository"},
+                "platformRepository": {"ref": "platformRepository"}
+            }
+        }
+    }
+}

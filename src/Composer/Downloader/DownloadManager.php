@@ -32,10 +32,11 @@ class DownloadManager
      *
      * @param bool $preferSource prefer downloading from source
      */
-    public function __construct($preferSource = false, Filesystem $filesystem = null)
+    public function __construct($preferSource = false, Filesystem $filesystem = null, $downloaders = array())
     {
         $this->preferSource = $preferSource;
         $this->filesystem = $filesystem ?: new Filesystem();
+        $this->downloaders = $downloaders;
     }
 
     /**

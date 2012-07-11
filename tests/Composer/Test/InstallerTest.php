@@ -12,6 +12,7 @@
 namespace Composer\Test;
 
 use Composer\Installer;
+use Composer\DependencyContainer\TinyContainer;
 use Composer\Console\Application;
 use Composer\Config;
 use Composer\Json\JsonFile;
@@ -20,8 +21,6 @@ use Composer\Repository\RepositoryManager;
 use Composer\Package\PackageInterface;
 use Composer\Package\Link;
 use Composer\Package\Locker;
-use Composer\Test\Mock\FactoryMock;
-use Composer\Test\Mock\InstalledFilesystemRepositoryMock;
 use Composer\Test\Mock\InstallationManagerMock;
 use Composer\Test\Mock\WritableRepositoryMock;
 use Symfony\Component\Console\Input\StringInput;
@@ -37,12 +36,19 @@ class InstallerTest extends TestCase
         $io = $this->getMock('Composer\IO\IOInterface');
 
         $downloadManager = $this->getMock('Composer\Downloader\DownloadManager');
-        $config = $this->getMock('Composer\Config');
+        $config = new Config(array(
+            'config' => array(
+                'default-repositories' => array()
+            ),
+            'repositories' => array()
+        ));
 
-        $repositoryManager = new RepositoryManager($io, $config);
-        $repositoryManager->setLocalRepository(new WritableRepositoryMock());
-        $repositoryManager->setLocalDevRepository(new WritableRepositoryMock());
-
+        $repositoryManager = new RepositoryManager(
+            new WritableRepositoryMock(),
+            new WritableRepositoryMock(),
+            array(),
+            $config
+        );
         if (!is_array($repositories)) {
             $repositories = array($repositories);
         }
@@ -51,7 +57,7 @@ class InstallerTest extends TestCase
         }
 
         $locker = $this->getMockBuilder('Composer\Package\Locker')->disableOriginalConstructor()->getMock();
-        $installationManager = new InstallationManagerMock();
+        $installationManager = new InstallationManagerMock(array());
         $eventDispatcher = $this->getMockBuilder('Composer\Script\EventDispatcher')->disableOriginalConstructor()->getMock();
         $autoloadGenerator = $this->getMock('Composer\Autoload\AutoloadGenerator');
 
@@ -132,6 +138,9 @@ class InstallerTest extends TestCase
             }
         }
 
+        $home = sys_get_temp_dir().'/composer-test';
+        $fs = new \Composer\Util\Filesystem();
+        $fs->removeDirectory($home);
         $output = null;
         $io = $this->getMock('Composer\IO\IOInterface');
         $io->expects($this->any())
@@ -139,29 +148,20 @@ class InstallerTest extends TestCase
             ->will($this->returnCallback(function ($text, $newline) use (&$output) {
                 $output .= $text . ($newline ? "\n":"");
             }));
-
-        $composer = FactoryMock::create($io, $composerConfig);
-
-        $jsonMock = $this->getMockBuilder('Composer\Json\JsonFile')->disableOriginalConstructor()->getMock();
-        $jsonMock->expects($this->any())
-            ->method('read')
-            ->will($this->returnValue($installed));
-        $jsonMock->expects($this->any())
-            ->method('exists')
-            ->will($this->returnValue(true));
-
-        $devJsonMock = $this->getMockBuilder('Composer\Json\JsonFile')->disableOriginalConstructor()->getMock();
-        $devJsonMock->expects($this->any())
-            ->method('read')
-            ->will($this->returnValue($installedDev));
-        $devJsonMock->expects($this->any())
-            ->method('exists')
-            ->will($this->returnValue(true));
-
-        $repositoryManager = $composer->getRepositoryManager();
-        $repositoryManager->setLocalRepository(new InstalledFilesystemRepositoryMock($jsonMock));
-        $repositoryManager->setLocalDevRepository(new InstalledFilesystemRepositoryMock($devJsonMock));
-
+        $originalConfigFile = new JsonFile(__DIR__.'/../../../src/Composer/config.json');
+        $originalConfigData = $originalConfigFile->read();
+        $testConfigFile = new JsonFile(__DIR__.'/config.json');
+        $testConfigData = $testConfigFile->read();
+        $config = new Config(
+            array('config' => $originalConfigData),
+            array('config' => $testConfigData),
+            array('repositories' => array()),
+            array('config' => array(
+                'home' => sys_get_temp_dir().'/composer-test'),
+                'vendor-dir' => '${home}/vendor',
+            ),
+            $composerConfig
+        );
         $lockJsonMock = $this->getMockBuilder('Composer\Json\JsonFile')->disableOriginalConstructor()->getMock();
         $lockJsonMock->expects($this->any())
             ->method('read')
@@ -181,17 +181,27 @@ class InstallerTest extends TestCase
                 }));
         }
 
-        $locker = new Locker($lockJsonMock, $repositoryManager, $composer->getInstallationManager(), md5(json_encode($composerConfig)));
-        $composer->setLocker($locker);
+        $container = new TinyContainer($config->getObject('objects'), $config->getParameters());
+        $container->setParameter('io', $io);
+        $container->setParameter('config', $config);
 
-        $autoloadGenerator = $this->getMock('Composer\Autoload\AutoloadGenerator');
+        $container->setParameter('installed', $installed);
+        $container->setParameter('installedDev', $installedDev);
+        $container->setParameter('lockJsonMock', $lockJsonMock);
+        $container->setParameter('autoloadGenerator', $this->getMock('Composer\Autoload\AutoloadGenerator'));
+//        $locker = new Locker($lockJsonMock, $repositoryManager, $composer->getInstallationManager(), md5(json_encode($composerConfig)));
+//        $composer->setLocker($locker);
 
-        $installer = Installer::create(
-            $io,
-            $composer,
-            null,
-            $autoloadGenerator
-        );
+//        $autoloadGenerator = $this->getMock('Composer\Autoload\AutoloadGenerator');
+
+        $composer = $container->getInstance('composer');
+        $installer = $container->getInstance('installer');
+//        $installer = Installer::create(
+//            $io,
+//            $composer,
+//            null,
+//            $autoloadGenerator
+//        );
 
         $application = new Application;
         $application->get('install')->setCode(function ($input, $output) use ($installer) {
@@ -225,7 +235,7 @@ class InstallerTest extends TestCase
         }
 
         $installationManager = $composer->getInstallationManager();
-        $this->assertSame($expect, implode("\n", $installationManager->getTrace()));
+        $this->assertSame($expect, implode("\n", $installationManager->getTrace()), $message);
     }
 
     public function getIntegrationTests()

@@ -39,8 +39,7 @@ class SvnDriverTest extends \PHPUnit_Framework_TestCase
             ->method('getErrorOutput')
             ->will($this->returnValue($output));
 
-        $config = new Config();
-        $config->merge(array(
+        $config = new Config(array(
             'config' => array(
                 'home' => sys_get_temp_dir() . '/composer-test',
             ),

@@ -42,9 +42,8 @@ class RootPackageLoaderTest extends \PHPUnit_Framework_TestCase
             return 0;
         });
 
-        $config = new Config;
-        $config->merge(array('repositories' => array('packagist' => false)));
-        $loader = new RootPackageLoader($manager, $config, null, $processExecutor);
+        $config = new Config(array('repositories' => array('packagist' => false)));
+        $loader = new RootPackageLoader($config, null, $processExecutor);
         $package = $loader->load(array());
 
         $this->assertEquals("dev-$commitHash", $package->getVersion());

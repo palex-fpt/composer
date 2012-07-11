@@ -53,9 +53,9 @@ EOT
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $composer = $this->getComposer();
-        $io = $this->getIO();
-        $install = Installer::create($io, $composer);
+        $container = $this->getApplication()->getContainer();
+        /** @var $shower \Composer\RepoLister */
+        $install = $container->getInstance('installer');
 
         $install
             ->setDryRun($input->getOption('dry-run'))

@@ -12,7 +12,6 @@
 
 namespace Composer\Command;
 
-use Composer\Factory;
 use Composer\Installer;
 use Composer\Installer\ProjectInstaller;
 use Composer\IO\IOInterface;
@@ -85,14 +84,16 @@ EOT
 
     public function installProject(IOInterface $io, $packageName, $directory = null, $version = null, $preferSource = false, $installDevPackages = false, $repositoryUrl = null)
     {
-        $dm = $this->createDownloadManager($io);
+        /** @var $composer \Composer\Composer */
+        $composer = $this->getApplication()->getComposer();
+        $dm = $composer->getDownloadManager();
         if ($preferSource) {
             $dm->setPreferSource(true);
         }
 
-        $config = Factory::createConfig();
+        $config = $composer->getConfig();
         if (null === $repositoryUrl) {
-            $sourceRepo = new CompositeRepository(Factory::createDefaultRepositories($io, $config));
+            $sourceRepo = new CompositeRepository($composer->getRepositoryManager()->getRepositories());
         } elseif ("json" === pathinfo($repositoryUrl, PATHINFO_EXTENSION)) {
             $sourceRepo = new FilesystemRepository(new JsonFile($repositoryUrl, new RemoteFilesystem($io)));
         } elseif (0 === strpos($repositoryUrl, 'http')) {
@@ -135,19 +136,13 @@ EOT
 
         putenv('COMPOSER_ROOT_VERSION='.$package->getPrettyVersion());
 
-        $composer = Factory::create($io);
-        $installer = Installer::create($io, $composer);
+        $container = $this->getApplication()->getContainer();
+        /** @var $shower \Composer\RepoLister */
+        $install = $container->getInstance('installer');
 
-        $installer
+        $install
             ->setPreferSource($preferSource)
             ->setDevMode($installDevPackages)
             ->run();
-    }
-
-    protected function createDownloadManager(IOInterface $io)
-    {
-        $factory = new Factory();
-
-        return $factory->createDownloadManager($io);
     }
 }

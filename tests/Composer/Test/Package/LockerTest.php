@@ -127,7 +127,7 @@ class LockerTest extends \PHPUnit_Framework_TestCase
         $repo = $this->createRepositoryManagerMock();
         $inst = $this->createInstallationManagerMock();
 
-        $locker = new Locker($json, $repo, $inst, 'md5');
+        $locker = new Locker($json, $repo, $inst);
 
         $package1 = $this->createPackageMock();
         $package2 = $this->createPackageMock();
@@ -154,7 +154,7 @@ class LockerTest extends \PHPUnit_Framework_TestCase
             ->expects($this->once())
             ->method('write')
             ->with(array(
-                'hash' => 'md5',
+                'hash' => md5_file(__FILE__),
                 'packages' => array(
                     array('package' => 'pkg1', 'version' => '1.0.0-beta'),
                     array('package' => 'pkg2', 'version' => '0.1.10')
@@ -193,12 +193,12 @@ class LockerTest extends \PHPUnit_Framework_TestCase
         $repo = $this->createRepositoryManagerMock();
         $inst = $this->createInstallationManagerMock();
 
-        $locker = new Locker($json, $repo, $inst, 'md5');
+        $locker = new Locker($json, $repo, $inst);
 
         $json
             ->expects($this->once())
             ->method('read')
-            ->will($this->returnValue(array('hash' => 'md5')));
+            ->will($this->returnValue(array('hash' => md5_file(__FILE__))));
 
         $this->assertTrue($locker->isFresh());
     }
@@ -209,7 +209,7 @@ class LockerTest extends \PHPUnit_Framework_TestCase
         $repo = $this->createRepositoryManagerMock();
         $inst = $this->createInstallationManagerMock();
 
-        $locker = new Locker($json, $repo, $inst, 'md5');
+        $locker = new Locker($json, $repo, $inst);
 
         $json
             ->expects($this->once())
@@ -221,9 +221,14 @@ class LockerTest extends \PHPUnit_Framework_TestCase
 
     private function createJsonFileMock()
     {
-        return $this->getMockBuilder('Composer\Json\JsonFile')
+        $jsonFileMock = $this->getMockBuilder('Composer\Json\JsonFile')
             ->disableOriginalConstructor()
             ->getMock();
+        $jsonFileMock->expects($this->any())
+            ->method('getPath')
+            ->will($this->returnValue(__FILE__));
+
+        return $jsonFileMock;
     }
 
     private function createRepositoryManagerMock()

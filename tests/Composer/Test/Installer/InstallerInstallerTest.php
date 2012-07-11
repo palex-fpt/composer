@@ -23,7 +23,10 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
     protected $composer;
     protected $packages;
     protected $im;
+    private $rm;
+    protected $dm;
     protected $repository;
+    private $config;
     protected $io;
 
     protected function setUp()
@@ -38,6 +41,8 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $this->dm = $dm;
+
         $this->im = $this->getMockBuilder('Composer\Installer\InstallationManager')
             ->disableOriginalConstructor()
             ->getMock();
@@ -50,31 +55,41 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
         $rm->expects($this->any())
             ->method('getLocalRepositories')
             ->will($this->returnValue(array($this->repository)));
+        $this->rm = $rm;
 
         $this->io = $this->getMock('Composer\IO\IOInterface');
 
-        $this->composer = new Composer();
-        $config = new Config();
-        $this->composer->setConfig($config);
-        $this->composer->setDownloadManager($dm);
-        $this->composer->setInstallationManager($this->im);
-        $this->composer->setRepositoryManager($rm);
-
-        $config->merge(array(
+        $config = new Config(array(
             'config' => array(
-                'vendor-dir' => __DIR__.'/Fixtures/',
-                'bin-dir' => __DIR__.'/Fixtures/bin',
+                'vendor-dir' => __DIR__ . '/Fixtures/',
+                'bin-dir' => __DIR__ . '/Fixtures/bin',
             ),
         ));
+        $this->config = $config;
+    }
+
+    private function createComposer()
+    {
+        $this->composer = new Composer(
+            $this->config,
+            $rootPackage = $this->getMock('Composer\Package\PackageInterface'),
+            $locker = $this->getMockBuilder('Composer\Package\Locker')->disableOriginalConstructor()->getMock(),
+            $this->rm,
+            $this->dm,
+            $this->im,
+            $remoteFilesystem = $this->getMock('Composer\Util\RemoteFilesystem')
+        );
     }
 
     public function testInstallNewInstaller()
     {
         $this->repository
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPackages')
             ->will($this->returnValue(array()));
-        $installer = new InstallerInstallerMock($this->io, $this->composer);
+        $this->createComposer();
+        $installer = new InstallerInstallerMock($this->io, $this->rm, $this->dm, $this->config);
+        $installer->setComposer($this->composer);
 
         $test = $this;
         $this->im
@@ -90,11 +105,13 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
     public function testInstallMultipleInstallers()
     {
         $this->repository
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPackages')
             ->will($this->returnValue(array()));
 
-        $installer = new InstallerInstallerMock($this->io, $this->composer);
+        $this->createComposer();
+        $installer = new InstallerInstallerMock($this->io, $this->rm, $this->dm, $this->config);
+        $installer->setComposer($this->composer);
 
         $test = $this;
 
@@ -120,14 +137,16 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
     public function testUpgradeWithNewClassName()
     {
         $this->repository
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPackages')
             ->will($this->returnValue(array($this->packages[0])));
         $this->repository
             ->expects($this->exactly(2))
             ->method('hasPackage')
             ->will($this->onConsecutiveCalls(true, false));
-        $installer = new InstallerInstallerMock($this->io, $this->composer);
+        $this->createComposer();
+        $installer = new InstallerInstallerMock($this->io, $this->rm, $this->dm, $this->config);
+        $installer->setComposer($this->composer);
 
         $test = $this;
         $this->im
@@ -143,14 +162,16 @@ class InstallerInstallerTest extends \PHPUnit_Framework_TestCase
     public function testUpgradeWithSameClassName()
     {
         $this->repository
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPackages')
             ->will($this->returnValue(array($this->packages[1])));
         $this->repository
             ->expects($this->exactly(2))
             ->method('hasPackage')
             ->will($this->onConsecutiveCalls(true, false));
-        $installer = new InstallerInstallerMock($this->io, $this->composer);
+        $this->createComposer();
+        $installer = new InstallerInstallerMock($this->io, $this->rm, $this->dm, $this->config);
+        $installer->setComposer($this->composer);
 
         $test = $this;
         $this->im

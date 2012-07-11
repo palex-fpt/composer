@@ -13,6 +13,7 @@
 namespace Composer\Command;
 
 use Composer\Composer;
+use Composer\Repository\RepositoryManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -50,8 +51,10 @@ EOT
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $composer = $this->getComposer();
-        $references = $this->getReferences($input, $output, $composer);
+        $container = $this->getApplication()->getContainer();
+        /** @var $shower \Composer\Repository\RepositoryManager */
+        $repositoryManager = $container->getInstance('repositoryManager');
+        $references = $this->getReferences($input, $output, $repositoryManager);
 
         if ($input->getOption('verbose')) {
             $this->printReferences($input, $output, $references);
@@ -69,14 +72,14 @@ EOT
      * @return array
      * @throws \InvalidArgumentException
      */
-    private function getReferences(InputInterface $input, OutputInterface $output, Composer $composer)
+    private function getReferences(InputInterface $input, OutputInterface $output, RepositoryManager $repositoryManager)
     {
         $needle = $input->getArgument('package');
 
         $references = array();
         $verbose = (bool) $input->getOption('verbose');
 
-        $repos = $composer->getRepositoryManager()->getRepositories();
+        $repos = $repositoryManager->getRepositories();
         $types = $input->getOption('link-type');
 
         foreach ($repos as $repository) {

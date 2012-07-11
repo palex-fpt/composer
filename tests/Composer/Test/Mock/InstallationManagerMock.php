@@ -12,6 +12,7 @@
 namespace Composer\Test\Mock;
 
 use Composer\Installer\InstallationManager;
+use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Repository\RepositoryInterface;
 use Composer\Package\PackageInterface;
 use Composer\DependencyResolver\Operation\InstallOperation;
@@ -52,6 +53,11 @@ class InstallationManagerMock extends InstallationManager
         $this->uninstalled[] = $operation->getPackage();
         $this->trace[] = (string) $operation;
         $repo->removePackage($operation->getPackage());
+    }
+
+    public function isPackageInstalled(InstalledRepositoryInterface $repo, PackageInterface $package)
+    {
+        return true;
     }
 
     public function markAliasInstalled(RepositoryInterface $repo, MarkAliasInstalledOperation $operation)

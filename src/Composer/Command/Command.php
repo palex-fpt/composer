@@ -59,14 +59,6 @@ abstract class Command extends BaseCommand
     }
 
     /**
-     * @param Composer $composer
-     */
-    public function setComposer(Composer $composer)
-    {
-        $this->composer = $composer;
-    }
-
-    /**
      * @return IOInterface
      */
     public function getIO()

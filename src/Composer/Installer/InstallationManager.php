@@ -23,7 +23,6 @@ use Composer\DependencyResolver\Operation\UpdateOperation;
 use Composer\DependencyResolver\Operation\UninstallOperation;
 use Composer\DependencyResolver\Operation\MarkAliasInstalledOperation;
 use Composer\DependencyResolver\Operation\MarkAliasUninstalledOperation;
-use Composer\Util\Filesystem;
 
 /**
  * Package operation manager.
@@ -35,6 +34,13 @@ class InstallationManager
 {
     private $installers = array();
     private $cache = array();
+
+    public function __construct($installers = array())
+    {
+        foreach ($installers as $installer) {
+            $this->addInstaller($installer);
+        }
+    }
 
     /**
      * Adds installer
