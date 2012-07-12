@@ -21,13 +21,15 @@ namespace Composer\Repository\Pear;
  *
  * @author Alexey Prilipko <palex@farpost.com>
  */
+use Composer\Util\RemoteDownloader\RemoteDownloaderInterface;
+
 class ChannelRest11Reader extends BaseChannelReader
 {
     private $dependencyReader;
 
-    public function __construct($rfs)
+    public function __construct(RemoteDownloaderInterface $remoteDownloader)
     {
-        parent::__construct($rfs);
+        parent::__construct($remoteDownloader);
 
         $this->dependencyReader = new PackageDependencyParser();
     }
@@ -55,11 +57,18 @@ class ChannelRest11Reader extends BaseChannelReader
     {
         $result = array();
 
+        $categoryDescriptionUris = array();
         $xml = $this->requestXml($baseUrl, "/c/categories.xml");
         $xml->registerXPathNamespace('ns', self::ALL_CATEGORIES_NS);
         foreach ($xml->xpath('ns:c') as $node) {
             $categoryName = (string) $node;
-            $categoryPackages = $this->readCategoryPackages($baseUrl, $categoryName);
+            $categoryUri = $baseUrl . '/c/'.urlencode($categoryName).'/packagesinfo.xml';
+            $categoryDescriptionUris[$categoryName] = $categoryUri;
+        }
+
+        $categoryDescriptionXmls = $this->requestXmls($baseUrl, $categoryDescriptionUris);
+        foreach ($categoryDescriptionUris as $categoryName => $categoryUri) {
+            $categoryPackages = $this->readCategoryPackages($categoryDescriptionXmls[$categoryUri]);
             $result = array_merge($result, $categoryPackages);
         }
 
@@ -74,12 +83,10 @@ class ChannelRest11Reader extends BaseChannelReader
      * @param $categoryName string
      * @return PackageInfo[]
      */
-    private function readCategoryPackages($baseUrl, $categoryName)
+    private function readCategoryPackages(\SimpleXMLElement $xml)
     {
         $result = array();
 
-        $categoryPath = '/c/'.urlencode($categoryName).'/packagesinfo.xml';
-        $xml = $this->requestXml($baseUrl, $categoryPath);
         $xml->registerXPathNamespace('ns', self::CATEGORY_PACKAGES_INFO_NS);
         foreach ($xml->xpath('ns:pi') as $node) {
             $packageInfo = $this->parsePackage($node);

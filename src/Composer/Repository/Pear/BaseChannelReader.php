@@ -13,6 +13,7 @@
 namespace Composer\Repository\Pear;
 
 use Composer\Util\RemoteFilesystem;
+use Composer\Util\RemoteDownloader\RemoteDownloaderInterface;
 
 /**
  * Base PEAR Channel reader.
@@ -33,12 +34,12 @@ abstract class BaseChannelReader
     const ALL_RELEASES_NS = 'http://pear.php.net/dtd/rest.allreleases';
     const PACKAGE_INFO_NS = 'http://pear.php.net/dtd/rest.package';
 
-    /** @var RemoteFilesystem */
-    private $rfs;
+    /** @var RemoteDownloaderInterface */
+    private $remoteDownloader;
 
-    protected function __construct(RemoteFilesystem $rfs)
+    protected function __construct(RemoteDownloaderInterface $remoteDownloader)
     {
-        $this->rfs = $rfs;
+        $this->remoteDownloader = $remoteDownloader;
     }
 
     /**
@@ -51,7 +52,7 @@ abstract class BaseChannelReader
     protected function requestContent($origin, $path)
     {
         $url = rtrim($origin, '/') . '/' . ltrim($path, '/');
-        $content = $this->rfs->getContents($origin, $url, false);
+        $content = $this->remoteDownloader->downloadResource($url, null);
         if (!$content) {
             throw new \UnexpectedValueException('The PEAR channel at ' . $url . ' did not respond.');
         }
@@ -77,5 +78,24 @@ abstract class BaseChannelReader
         }
 
         return $xml;
+    }
+
+    protected function requestXmls($origin, array $uris)
+    {
+        $result = array();
+        $contents = $this->remoteDownloader->downloadResources($uris, null);
+
+        foreach ($contents as $uri => $content) {
+            // http://components.ez.no/p/packages.xml is malformed. to read it we must ignore parsing errors.
+            $xml = simplexml_load_string($content, "SimpleXMLElement", LIBXML_NOERROR);
+
+            if (false == $xml) {
+                throw new \UnexpectedValueException(sprintf('The PEAR channel at ' . $origin . ' is broken. (Invalid XML at `%s`)', $uri));
+            }
+
+            $result[$uri] = $xml;
+        }
+
+        return $result;
     }
 }

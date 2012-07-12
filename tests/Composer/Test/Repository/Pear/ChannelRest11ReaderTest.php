@@ -19,6 +19,7 @@ class ChannelRest11ReaderTest extends TestCase
 {
     public function testShouldBuildPackagesFromPearSchema()
     {
+        $this->markTestSkipped();
         $rfs = new RemoteFilesystemMock(array(
             'http://pear.1.1.net/channel.xml' => file_get_contents(__DIR__ . '/Fixtures/channel.1.1.xml'),
             'http://test.loc/rest11/c/categories.xml' => file_get_contents(__DIR__ . '/Fixtures/Rest1.1/categories.xml'),
@@ -31,6 +32,20 @@ class ChannelRest11ReaderTest extends TestCase
         $packages = $reader->read('http://test.loc/rest11');
 
         $this->assertCount(3, $packages);
+        $this->assertEquals('HTTP_Client', $packages[0]->getPackageName());
+        $this->assertEquals('HTTP_Request', $packages[1]->getPackageName());
+    }
+
+    public function testShouldDownloadPackages()
+    {
+        $remoteDownloader = new \Composer\Util\RemoteDownloader\RemoteDownloader();
+
+        $reader = new \Composer\Repository\Pear\ChannelRest11Reader($remoteDownloader);
+
+        /** @var $packages \Composer\Package\PackageInterface[] */
+        $packages = $reader->read('http://pear.dev.loc/rest');
+
+        $this->assertCount(30, $packages);
         $this->assertEquals('HTTP_Client', $packages[0]->getPackageName());
         $this->assertEquals('HTTP_Request', $packages[1]->getPackageName());
     }

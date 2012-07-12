@@ -13,6 +13,7 @@
 namespace Composer\Repository\Pear;
 
 use Composer\Util\RemoteFilesystem;
+use Composer\Util\RemoteDownloader\RemoteDownloaderInterface;
 
 /**
  * PEAR Channel package reader.
@@ -26,12 +27,12 @@ class ChannelReader extends BaseChannelReader
     /** @var array of ('xpath test' => 'rest implementation') */
     private $readerMap;
 
-    public function __construct(RemoteFilesystem $rfs)
+    public function __construct(RemoteDownloaderInterface $remoteDownloader)
     {
-        parent::__construct($rfs);
+        parent::__construct($remoteDownloader);
 
-        $rest10reader = new ChannelRest10Reader($rfs);
-        $rest11reader = new ChannelRest11Reader($rfs);
+        $rest10reader = new ChannelRest10Reader($remoteDownloader);
+        $rest11reader = new ChannelRest11Reader($remoteDownloader);
 
         $this->readerMap = array(
             'REST1.3' => $rest11reader,

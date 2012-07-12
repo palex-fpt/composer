@@ -76,7 +76,7 @@ class PearInstaller extends LibraryInstaller
     }
 
     protected function getBinaries(PackageInterface $package)
-    {
+    {return array();
         $binariesPath = $this->getInstallPath($package) . '/bin/';
         $binaries = array();
         if (file_exists($binariesPath)) {

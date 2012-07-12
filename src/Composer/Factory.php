@@ -228,7 +228,7 @@ class Factory
         $dm->setDownloader('zip', new Downloader\ZipDownloader($io));
         $dm->setDownloader('tar', new Downloader\TarDownloader($io));
         $dm->setDownloader('phar', new Downloader\PharDownloader($io));
-        $dm->setDownloader('file', new Downloader\FileDownloader($io));
+        $dm->setDownloader('file', new Downloader\FileDownloader($io, new \Composer\Util\RemoteDownloader\RemoteDownloader()));
 
         return $dm;
     }

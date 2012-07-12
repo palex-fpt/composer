@@ -66,7 +66,7 @@ class PearRepository extends ArrayRepository
 
         $this->io->write('Initializing PEAR repository '.$this->url);
 
-        $reader = new ChannelReader($this->rfs);
+        $reader = new ChannelReader(new \Composer\Util\RemoteDownloader\RemoteDownloader());
         try {
             $channelInfo = $reader->read($this->url);
         } catch (\Exception $e) {

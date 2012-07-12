@@ -13,6 +13,8 @@
 namespace Composer\Downloader;
 
 use Composer\IO\IOInterface;
+use Composer\Util\RemoteDownloader\IONotifier;
+use Composer\Util\RemoteDownloader\RemoteDownloader;
 use Composer\Package\PackageInterface;
 use Composer\Util\Filesystem;
 use Composer\Util\RemoteFilesystem;
@@ -27,7 +29,7 @@ use Composer\Util\RemoteFilesystem;
 class FileDownloader implements DownloaderInterface
 {
     protected $io;
-    protected $rfs;
+    protected $remoteDownloader;
     protected $filesystem;
 
     /**
@@ -35,10 +37,10 @@ class FileDownloader implements DownloaderInterface
      *
      * @param IOInterface $io The IO instance
      */
-    public function __construct(IOInterface $io, RemoteFilesystem $rfs = null, Filesystem $filesystem = null)
+    public function __construct(IOInterface $io, RemoteDownloader $remoteDownloader = null, Filesystem $filesystem = null)
     {
         $this->io = $io;
-        $this->rfs = $rfs ?: new RemoteFilesystem($io);
+        $this->remoteDownloader = $remoteDownloader;
         $this->filesystem = $filesystem ?: new Filesystem();
     }
 
@@ -69,7 +71,9 @@ class FileDownloader implements DownloaderInterface
         $processUrl = $this->processUrl($url);
 
         try {
-            $this->rfs->copy($package->getSourceUrl(), $processUrl, $fileName);
+            $notifier = new IONotifier($this->io);
+            $content = $this->remoteDownloader->downloadResource($processUrl, $notifier);
+            file_put_contents($fileName, $content);
 
             if (!file_exists($fileName)) {
                 throw new \UnexpectedValueException($url.' could not be saved to '.$fileName.', make sure the'
